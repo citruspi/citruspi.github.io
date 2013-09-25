@@ -1,0 +1,284 @@
+<html>
+
+    <head>
+        <link rel="stylesheet" href="/css/css/bootstrap.min.css">
+        <link rel="stylesheet" href="/css/css/style.css">
+        <link href="//netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="/css/css/syntax.css">
+        <title>Home | Mihir Singh</title>
+        
+        <style type="text/css">
+            a {
+                text-decoration:none;
+                color:#F94D00;
+            }
+
+            a:hover {
+                color: rgba(0,0,0,0.9) !important;
+                text-decoration:none;
+            }
+        </style>
+
+    </head>
+
+    <body class="lead">
+
+        <div class="navbar navbar-fixed-top" style="margin: -1px -1px 0; border-top: 7px solid #F94D00;">
+            
+            <div class="container" style="width: auto;">
+                <a class="navbar-brand" href="#">Mihir Singh</a>
+                <div class="nav-collapse collapse navbar-responsive-collapse">
+
+                    <ul class="nav navbar-nav">
+
+
+                        
+                        <li><a href="/">Home</a></li>
+                        
+                        
+                        <li><a href="/archive">Archive</a></li>  
+                        
+                        
+                        <li><a href="/projects">Projects</a></li>  
+                        
+                        <li><a href="/resume">R&eacute;sum&eacute;</a></li>  
+                        <!--
+                        <li><a href="/about">About</a></li>  
+                        -->
+
+            
+                    </ul>                
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row" style="margin-top:4em;">
+
+              
+  
+  
+
+            <div class="col-10 col-lg-offset-1">
+
+                <div class="alert alert-info">This is my latest post - find the rest of them in the <a href="">archive</a>.</div>
+
+
+                Published: March 20, 2013&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Read Time: 4  minutes&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Categories:  chromebook  kali 
+                
+
+                <hr>
+                
+                <h2>Kali Linux on the Chromebook</h2>
+
+                <h3 id="preface">Preface</h3>
+
+<p>When I heard, last week, that Kali Linux 1.0 (Backtrack 6) was out, I was excited. When I got to the <a href="">download page</a> and saw that there were build images for my Raspberry Pi and Samsung Chromebook, I was ecstatic.</p>
+
+<p>The Kali site has an <a href="http://docs.kali.org/armel-armhf/install-kali-samsung-chromebook">article on installing it on the Chromebook</a>, but I couldn't get it to work. It</p>
+
+<ul>
+  <li>has quite a few errors<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup></li>
+  <li>is vague about what to do at certain points</li>
+</ul>
+
+<p>So, having managed to get it running on my Chromebook, I figured I would document the steps I took.</p>
+
+<h3 id="prerequisites">Prerequisites</h3>
+
+<ul>
+  <li>Samsung ARM Series 3 Chromebook (<strong>Dev Mode Enabled!</strong>)</li>
+  <li>Another computer (to write the disk image)</li>
+  <li>8+ GB USB Drive or SD Card</li>
+</ul>
+
+<h3 id="download-amp-write">Download &amp; Write</h3>
+
+<p>Download Kali Linux for the Chromebook from <a href="http://cdimage.kali.org/kali-images/kali-linux-1.0-armhf-chrome.img.gz">here</a> and extract the <code>.img</code> file from the gunzip archive.</p>
+
+<p>I opted to use <a href="http://sourceforge.net/projects/win32diskimager/">Win32 Disk Imager</a> to write the image to my flash drive. It can also be used to write the image to an SD Card.</p>
+
+<h3 id="modify">Modify</h3>
+
+<p>Plug your flash drive (USB 2.0 port) or SD card into the Chromebook. Open the <strong>shell</strong> through the <code>CROSH</code>:</p>
+
+<ol>
+  <li>Control + Alt + T</li>
+  <li>Type in <code>shell</code> and press <code>return</code></li>
+</ol>
+
+<p>List the devices:</p>
+
+<pre><code>$ lsblk | grep disk
+</code></pre>
+
+<p>If you have a flash drive, you should see <code>sda</code>. If you have an SD Card, it should be <code>mmcblk1</code>.</p>
+
+<p>Depending on what you use, there are a different set of instructions below.</p>
+
+<h3 id="flash-drive">Flash Drive</h3>
+
+<pre><code>$ sudo cgpt repair /dev/sda
+
+# Now, we set the priority of the boot partitions.    
+$ sudo cgpt add -i 1 -T 5 -P 5 -l KERN-A /dev/sda
+$ sudo cgpt add -i 2 -T 5 -P 10 -l KERN-B /dev/sda
+</code></pre>
+
+<p>Now, if you run </p>
+
+<pre><code>$ sudo cgpt show /dev/sda
+</code></pre>
+
+<p>it should look similar to this:</p>
+
+<pre><code>    start        size    part   contents
+        0           1           PMBR
+        1           1           Pri GPT header
+        2          32           Pri GPT table
+     8192       32768      1   Label: "KERN-A"
+                                 Type: ChromeOS kernel
+                                 UUID: 63AD6EC9-AD94-4B42-80E4-798BBE6BE46C
+                                 Attr: priority=5 tries=5 successful=1
+    40960       32768      2   Label: "KERN-B"
+                                 Type: ChromeOS kernel
+                                 UUID: 37CE46C9-0A7A-4994-80FC-9C0FFCB4FDC1
+                                 Attr: priority=10 tries=5 successful=1
+    73728     3832490      3   Label: "Linux filesystem"
+                                 Type: 0FC63DAF-8483-4772-8E79-3D69D8477DE4
+                                 UUID: E9E67EE1-C02E-481C-BA3F-18E721515DBB
+125045391          32           Sec GPT table
+125045423           1           Sec GPT header
+</code></pre>
+
+<p>Then, we enable cross system booting:</p>
+
+<pre><code>$ sudo crossystem dev_boot_usb=1
+</code></pre>
+
+<p><a href="http://i.imgur.com/fZPouot.png"><img alt="" class="img-responsive" src="http://i.imgur.com/fZPouot.png" /></a></p>
+
+<h3 id="sd-card">SD Card</h3>
+
+<p><em>I have not tested these instructions yet - I've only used my flash drive. However, in theory, they should work. I'd be grateful if someone tested this and reported back.</em></p>
+
+<div class="highlight"><pre><code class="bash"><span class="nv">$ </span>sudo cgpt repair /dev/mmcblk1
+
+<span class="c"># Now, we set the priority of the boot partitions.    </span>
+<span class="nv">$ </span>sudo cgpt add -i 1 -T 5 -P 10 -l KERN-A /dev/mmcblk1
+<span class="nv">$ </span>sudo cgpt add -i 2 -T 5 -P 5 -l KERN-B /dev/mmcblk1
+</code></pre></div>
+
+<p>Now, if you run </p>
+
+<pre><code>$ sudo cgpt show /dev/mmcblk1
+</code></pre>
+
+<p>it should look similar to this:</p>
+
+<div class="highlight"><pre><code class="bash">    start        size    part   contents
+        0           1           PMBR
+        1           1           Pri GPT header
+        2          32           Pri GPT table
+     8192       32768      1    Label: <span class="s2">&quot;KERN-A&quot;</span>
+                                     Type: ChromeOS kernel
+                                     UUID: 63AD6EC9-AD94-4B42-80E4-798BBE6BE46C
+                                     Attr: <span class="nv">priority</span><span class="o">=</span>10 <span class="nv">tries</span><span class="o">=</span>5 <span class="nv">successful</span><span class="o">=</span>1
+    40960       32768      2    Label: <span class="s2">&quot;KERN-B&quot;</span>
+                                     Type: ChromeOS kernel
+                                     UUID: 37CE46C9-0A7A-4994-80FC-9C0FFCB4FDC1
+                                     Attr: <span class="nv">priority</span><span class="o">=</span>5 <span class="nv">tries</span><span class="o">=</span>5 <span class="nv">successful</span><span class="o">=</span>1
+    73728     3832490      3    Label: <span class="s2">&quot;Linux filesystem&quot;</span>
+                                     Type: 0FC63DAF-8483-4772-8E79-3D69D8477DE4
+                                     UUID: E9E67EE1-C02E-481C-BA3F-18E721515DBB
+125045391          32           Sec GPT table
+125045423           1           Sec GPT header
+</code></pre></div>
+
+<p>Then, we enable cross system booting:</p>
+
+<div class="highlight"><pre><code class="bash"><span class="nv">$ </span>sudo crossystem <span class="nv">dev_boot_usb</span><span class="o">=</span>1    
+</code></pre></div>
+
+<h3 id="wrap-up">Wrap Up</h3>
+
+<p>When you see the <em>OS Verification is Off</em> screen on boot up, press <code>Control + U</code> to boot into Kali Linux or <code>Control + D</code> to boot into Chrome OS (but you already knew that, right?).</p>
+
+<p>Login with </p>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th style="text-align: left">username</th>
+      <th style="text-align: left">password</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left">root</td>
+      <td style="text-align: left">toor</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>You can use <code>startx</code> to launch the GUI. </p>
+
+<p><a href="http://i.imgur.com/SX1aW1l.jpg"><img alt="" class="img-responsive" src="http://i.imgur.com/SX1aW1l.jpg" /></a></p>
+<p><a href="http://i.imgur.com/RTDDVws.jpg"><img alt="" class="img-responsive" src="http://i.imgur.com/RTDDVws.jpg" /></a></p>
+
+<h3 id="bugs">Bugs</h3>
+
+<p>There are a few...</p>
+
+<ul>
+  <li>Web browser doesn't work ("Failed to execute default Web Browser")</li>
+  <li>Terminal Emulator windows disappear, leaving just the title bar (?)</li>
+</ul>
+
+<h3 id="notes">Notes</h3>
+
+<ul>
+  <li>If you swipe horizontally with two fingers, you can scroll through the different workspaces.</li>
+  <li>Trackpad performance appears to be better than that of ChrUbuntu.</li>
+</ul>
+
+<h3 id="edit-june-13-2013">Edit (June 13, 2013)</h3>
+
+<p>The steps for the SD Card installation have been <a href="/kali-on-chromebook/#comment-928592964">verified</a>.</p>
+
+<hr />
+
+<div class="footnotes">
+  <ol>
+    <li id="fn:1">
+      <p>One such error? The instructions on Kali.org reference <code>/dev/sdb</code>. However, <code>/dev/sdb</code> is the location of a flash drive plugged into an <strong>Intel Chromebook</strong>. The location of a flash drive on the <strong>ARM Chromebook</strong> is <code>/dev/sda</code>. <a href="#fnref:1" class="reversefootnote">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+
+                <div id="disqus_thread" style="margin-bottom:2em; margin-top: 2em;">
+                    <script type="text/javascript">
+                        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+                        var disqus_shortname = 'mihirxxx'; // required: replace example with your forum shortname
+                        var disqus_identifier = '';
+
+                        /* * * DON'T EDIT BELOW THIS LINE * * */
+                        (function() {
+                            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                            dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+                        })();
+                    </script>
+                    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+                </div>
+
+            </div>
+
+        </div>
+
+    </body>
+</html>

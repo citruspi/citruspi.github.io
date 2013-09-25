@@ -1,0 +1,576 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+	<channel>
+		<title>Mihir Singh</title>
+		<description>Python programmer. Cheesecake lover. Open source advocate. Security enthusiast. Tintinologist. Apple fanboy. All that and more.</description>
+		<link>http://mihirsingh.com</link>
+		<atom:link href="http://mihirsingh.com/feed.xml" rel="self" type="application/rss+xml" />
+		
+			<item>
+				<title>Kali Linux on the Chromebook</title>
+				<description>&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;/h3&gt;
+
+&lt;p&gt;When I heard, last week, that Kali Linux 1.0 (Backtrack 6) was out, I was excited. When I got to the &lt;a href=&quot;&quot;&gt;download page&lt;/a&gt; and saw that there were build images for my Raspberry Pi and Samsung Chromebook, I was ecstatic.&lt;/p&gt;
+
+&lt;p&gt;The Kali site has an &lt;a href=&quot;http://docs.kali.org/armel-armhf/install-kali-samsung-chromebook&quot;&gt;article on installing it on the Chromebook&lt;/a&gt;, but I couldn&#39;t get it to work. It&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;has quite a few errors&lt;sup id=&quot;fnref:1&quot;&gt;&lt;a href=&quot;#fn:1&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/li&gt;
+  &lt;li&gt;is vague about what to do at certain points&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;So, having managed to get it running on my Chromebook, I figured I would document the steps I took.&lt;/p&gt;
+
+&lt;h3 id=&quot;prerequisites&quot;&gt;Prerequisites&lt;/h3&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Samsung ARM Series 3 Chromebook (&lt;strong&gt;Dev Mode Enabled!&lt;/strong&gt;)&lt;/li&gt;
+  &lt;li&gt;Another computer (to write the disk image)&lt;/li&gt;
+  &lt;li&gt;8+ GB USB Drive or SD Card&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;download-amp-write&quot;&gt;Download &amp;amp; Write&lt;/h3&gt;
+
+&lt;p&gt;Download Kali Linux for the Chromebook from &lt;a href=&quot;http://cdimage.kali.org/kali-images/kali-linux-1.0-armhf-chrome.img.gz&quot;&gt;here&lt;/a&gt; and extract the &lt;code&gt;.img&lt;/code&gt; file from the gunzip archive.&lt;/p&gt;
+
+&lt;p&gt;I opted to use &lt;a href=&quot;http://sourceforge.net/projects/win32diskimager/&quot;&gt;Win32 Disk Imager&lt;/a&gt; to write the image to my flash drive. It can also be used to write the image to an SD Card.&lt;/p&gt;
+
+&lt;h3 id=&quot;modify&quot;&gt;Modify&lt;/h3&gt;
+
+&lt;p&gt;Plug your flash drive (USB 2.0 port) or SD card into the Chromebook. Open the &lt;strong&gt;shell&lt;/strong&gt; through the &lt;code&gt;CROSH&lt;/code&gt;:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Control + Alt + T&lt;/li&gt;
+  &lt;li&gt;Type in &lt;code&gt;shell&lt;/code&gt; and press &lt;code&gt;return&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;List the devices:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ lsblk | grep disk
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;If you have a flash drive, you should see &lt;code&gt;sda&lt;/code&gt;. If you have an SD Card, it should be &lt;code&gt;mmcblk1&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Depending on what you use, there are a different set of instructions below.&lt;/p&gt;
+
+&lt;h3 id=&quot;flash-drive&quot;&gt;Flash Drive&lt;/h3&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo cgpt repair /dev/sda
+
+# Now, we set the priority of the boot partitions.    
+$ sudo cgpt add -i 1 -T 5 -P 5 -l KERN-A /dev/sda
+$ sudo cgpt add -i 2 -T 5 -P 10 -l KERN-B /dev/sda
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now, if you run &lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo cgpt show /dev/sda
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;it should look similar to this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    start        size    part   contents
+        0           1           PMBR
+        1           1           Pri GPT header
+        2          32           Pri GPT table
+     8192       32768      1   Label: &quot;KERN-A&quot;
+                                 Type: ChromeOS kernel
+                                 UUID: 63AD6EC9-AD94-4B42-80E4-798BBE6BE46C
+                                 Attr: priority=5 tries=5 successful=1
+    40960       32768      2   Label: &quot;KERN-B&quot;
+                                 Type: ChromeOS kernel
+                                 UUID: 37CE46C9-0A7A-4994-80FC-9C0FFCB4FDC1
+                                 Attr: priority=10 tries=5 successful=1
+    73728     3832490      3   Label: &quot;Linux filesystem&quot;
+                                 Type: 0FC63DAF-8483-4772-8E79-3D69D8477DE4
+                                 UUID: E9E67EE1-C02E-481C-BA3F-18E721515DBB
+125045391          32           Sec GPT table
+125045423           1           Sec GPT header
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Then, we enable cross system booting:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo crossystem dev_boot_usb=1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://i.imgur.com/fZPouot.png&quot;&gt;&lt;img alt=&quot;&quot; class=&quot;img-responsive&quot; src=&quot;http://i.imgur.com/fZPouot.png&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;sd-card&quot;&gt;SD Card&lt;/h3&gt;
+
+&lt;p&gt;&lt;em&gt;I have not tested these instructions yet - I&#39;ve only used my flash drive. However, in theory, they should work. I&#39;d be grateful if someone tested this and reported back.&lt;/em&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo cgpt repair /dev/mmcblk1
+
+&lt;span class=&quot;c&quot;&gt;# Now, we set the priority of the boot partitions.    &lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo cgpt add -i 1 -T 5 -P 10 -l KERN-A /dev/mmcblk1
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo cgpt add -i 2 -T 5 -P 5 -l KERN-B /dev/mmcblk1
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, if you run &lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ sudo cgpt show /dev/mmcblk1
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;it should look similar to this:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;    start        size    part   contents
+        0           1           PMBR
+        1           1           Pri GPT header
+        2          32           Pri GPT table
+     8192       32768      1    Label: &lt;span class=&quot;s2&quot;&gt;&amp;quot;KERN-A&amp;quot;&lt;/span&gt;
+                                     Type: ChromeOS kernel
+                                     UUID: 63AD6EC9-AD94-4B42-80E4-798BBE6BE46C
+                                     Attr: &lt;span class=&quot;nv&quot;&gt;priority&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;10 &lt;span class=&quot;nv&quot;&gt;tries&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;5 &lt;span class=&quot;nv&quot;&gt;successful&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1
+    40960       32768      2    Label: &lt;span class=&quot;s2&quot;&gt;&amp;quot;KERN-B&amp;quot;&lt;/span&gt;
+                                     Type: ChromeOS kernel
+                                     UUID: 37CE46C9-0A7A-4994-80FC-9C0FFCB4FDC1
+                                     Attr: &lt;span class=&quot;nv&quot;&gt;priority&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;5 &lt;span class=&quot;nv&quot;&gt;tries&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;5 &lt;span class=&quot;nv&quot;&gt;successful&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1
+    73728     3832490      3    Label: &lt;span class=&quot;s2&quot;&gt;&amp;quot;Linux filesystem&amp;quot;&lt;/span&gt;
+                                     Type: 0FC63DAF-8483-4772-8E79-3D69D8477DE4
+                                     UUID: E9E67EE1-C02E-481C-BA3F-18E721515DBB
+125045391          32           Sec GPT table
+125045423           1           Sec GPT header
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Then, we enable cross system booting:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo crossystem &lt;span class=&quot;nv&quot;&gt;dev_boot_usb&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;1    
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;wrap-up&quot;&gt;Wrap Up&lt;/h3&gt;
+
+&lt;p&gt;When you see the &lt;em&gt;OS Verification is Off&lt;/em&gt; screen on boot up, press &lt;code&gt;Control + U&lt;/code&gt; to boot into Kali Linux or &lt;code&gt;Control + D&lt;/code&gt; to boot into Chrome OS (but you already knew that, right?).&lt;/p&gt;
+
+&lt;p&gt;Login with &lt;/p&gt;
+
+&lt;table class=&quot;table&quot;&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th style=&quot;text-align: left&quot;&gt;username&lt;/th&gt;
+      &lt;th style=&quot;text-align: left&quot;&gt;password&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;root&lt;/td&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;toor&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;You can use &lt;code&gt;startx&lt;/code&gt; to launch the GUI. &lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://i.imgur.com/SX1aW1l.jpg&quot;&gt;&lt;img alt=&quot;&quot; class=&quot;img-responsive&quot; src=&quot;http://i.imgur.com/SX1aW1l.jpg&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;http://i.imgur.com/RTDDVws.jpg&quot;&gt;&lt;img alt=&quot;&quot; class=&quot;img-responsive&quot; src=&quot;http://i.imgur.com/RTDDVws.jpg&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;bugs&quot;&gt;Bugs&lt;/h3&gt;
+
+&lt;p&gt;There are a few...&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Web browser doesn&#39;t work (&quot;Failed to execute default Web Browser&quot;)&lt;/li&gt;
+  &lt;li&gt;Terminal Emulator windows disappear, leaving just the title bar (?)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;notes&quot;&gt;Notes&lt;/h3&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;If you swipe horizontally with two fingers, you can scroll through the different workspaces.&lt;/li&gt;
+  &lt;li&gt;Trackpad performance appears to be better than that of ChrUbuntu.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;edit-june-13-2013&quot;&gt;Edit (June 13, 2013)&lt;/h3&gt;
+
+&lt;p&gt;The steps for the SD Card installation have been &lt;a href=&quot;/kali-on-chromebook/#comment-928592964&quot;&gt;verified&lt;/a&gt;.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;div class=&quot;footnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:1&quot;&gt;
+      &lt;p&gt;One such error? The instructions on Kali.org reference &lt;code&gt;/dev/sdb&lt;/code&gt;. However, &lt;code&gt;/dev/sdb&lt;/code&gt; is the location of a flash drive plugged into an &lt;strong&gt;Intel Chromebook&lt;/strong&gt;. The location of a flash drive on the &lt;strong&gt;ARM Chromebook&lt;/strong&gt; is &lt;code&gt;/dev/sda&lt;/code&gt;. &lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+				<pubDate>Wed, 20 Mar 2013 00:00:00 -0400</pubDate>
+				<link>http://mihirsingh.com/kali-on-chromebook</link>
+				<guid isPermaLink="true">http://mihirsingh.com/kali-on-chromebook</guid>
+			</item>
+		
+			<item>
+				<title>Running Sentry For Pennies</title>
+				<description>&lt;p&gt;&lt;em&gt;Note: The application &lt;a href=&quot;http://getsentry.com&quot;&gt;Sentry&lt;/a&gt;, described here, is not to be confused with my own script, &lt;a href=&quot;http://github.com/citruspi/Sentry&quot;&gt;Sentry&lt;/a&gt;, which performs a different function.&lt;/em&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;preface&quot;&gt;Preface&lt;/h3&gt;
+
+&lt;p&gt;A few months ago, I discovered &lt;a href=&quot;http://papertrailapp.com&quot;&gt;Papertrail&lt;/a&gt; and for the first time, I looked forward to going over my server logs every day.&lt;/p&gt;
+
+&lt;p&gt;I began to search for other centralized logging solutions. Two services which I found were &lt;a href=&quot;#&quot;&gt;Splunk&lt;/a&gt; and &lt;a href=&quot;#&quot;&gt;Sentry&lt;/a&gt;. I&#39;ve had Splunk running on my Linode server for the past few months, but never got around to Sentry. I finally got around to it on Wednesday. &lt;/p&gt;
+
+&lt;p&gt;The only turn off for Sentry was the pricing, so I decided to host it myself. This way, I pay pennies and I don&#39;t have any restrictions. Best of both worlds.&lt;/p&gt;
+
+&lt;h3 id=&quot;platform&quot;&gt;Platform&lt;/h3&gt;
+
+&lt;p&gt;I&#39;m currently running Sentry on a 32 bit Micro EC2 instance with Amazon Linux.&lt;/p&gt;
+
+&lt;h4 id=&quot;database&quot;&gt;Database&lt;/h4&gt;
+
+&lt;p&gt;Sentry requires a database and can use any of the following&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;SQLite (default)&lt;/li&gt;
+  &lt;li&gt;MySQL&lt;/li&gt;
+  &lt;li&gt;Postgres&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;However, according to the Documentation, SQLite is &lt;em&gt;not fully supported&lt;/em&gt;, so you should probably switch to Postgres or MySQL (Amazon RDS, anyone?) at some point.&lt;/p&gt;
+
+&lt;p&gt;I opted to stick with SQLite for now because I just wanted to get it running. I&#39;ll most likely setup AWS RDS in the near future.&lt;/p&gt;
+
+&lt;h3 id=&quot;installation&quot;&gt;Installation&lt;/h3&gt;
+
+&lt;p&gt;I&#39;m going to assume that, by now, you have:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;launched an instance&lt;/li&gt;
+  &lt;li&gt;downloaded the key pair&lt;/li&gt;
+  &lt;li&gt;associated an elastic ip with the instance&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;ssh -i ~/.ssh/public.pem ec2-user@ElasticIP
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo yum install gcc python-devel
+&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo easy_install -U sentry
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;setup&quot;&gt;Setup&lt;/h3&gt;
+
+&lt;p&gt;After the installation has finished, run&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sentry init
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;A config file named &lt;code&gt;sentry.conf.py&lt;/code&gt; will be created in &lt;code&gt;~/ec2-user/.sentry/&lt;/code&gt;:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Configuration file created at ‘/home/ec2-user/.sentry/sentry.conf.py’&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;You don&#39;t have to modify any of the settings right now, but we will later.&lt;/p&gt;
+
+&lt;p&gt;Now, run&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sentry upgrade
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;If it prints out&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;You just installed Django&#39;s auth system, which means you don&#39;t have any superusers defined.
+Would you like to create one now? (yes/no): 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Enter &lt;code&gt;yes&lt;/code&gt; and fill out the fields it provides. The user you create right now will be the &lt;em&gt;superuser&lt;/em&gt; for your Sentry installation.&lt;/p&gt;
+
+&lt;p&gt;When it finishes setting up Sentry, you&#39;ll be ready to go to the next section.&lt;/p&gt;
+
+&lt;h3 id=&quot;is-it-up&quot;&gt;Is It Up?&lt;/h3&gt;
+
+&lt;p&gt;In your console, run&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sentry start
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;It should start up three workers:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;2013-03-14 02:38:26 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;1440&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Starting unicorn 0.17.2
+2013-03-14 02:38:26 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;1440&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Listening at: http://0.0.0.0:9000 &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;1440&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+2013-03-14 02:38:26 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;1440&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Using worker: sync
+2013-03-14 02:38:26 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;1449&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Booting worker with pid: 1449
+2013-03-14 02:38:26 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;1450&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Booting worker with pid: 1450
+2013-03-14 02:38:26 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;1451&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;INFO&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt; Booting worker with pid: 1451
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;In your browser, open &lt;code&gt;ElasticIP:9000&lt;/code&gt;. You should be greeted with a login prompt:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://i.imgur.com/bEsUAiu.png&quot;&gt;&lt;img alt=&quot;&quot; class=&quot;img-responsive&quot; src=&quot;http://i.imgur.com/bEsUAiu.png&quot; /&gt;&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;It works!&lt;/p&gt;
+
+&lt;p&gt;Now, you can login, setup teams and projects, and get to work.&lt;/p&gt;
+
+&lt;h3 id=&quot;extra-credit&quot;&gt;Extra Credit&lt;/h3&gt;
+
+&lt;h4 id=&quot;disable-sign-ups&quot;&gt;Disable Sign Ups&lt;/h4&gt;
+
+&lt;p&gt;Right now, any one who stumbles upon your install can create an account. This isn&#39;t really a big problem because they&#39;ll be greeted with&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;You are not a member of any teams in Sentry and you do not have access to create a new team.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;However, it&#39;s still a nuisance.&lt;/p&gt;
+
+&lt;p&gt;To disable user registrations, just add&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;python&quot;&gt;&lt;span class=&quot;n&quot;&gt;SENTRY_ALLOW_REGISTRATION&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;bp&quot;&gt;False&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;to the &lt;code&gt;sentry.conf.py&lt;/code&gt; file.&lt;/p&gt;
+
+&lt;p&gt;You&#39;ll need to run&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sentry upgrade
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;again (no prompt this time) and kill and restart the Sentry process for the changes to take effect.&lt;/p&gt;
+
+&lt;p&gt;If you read the docs, there&#39;s a ton of other &lt;a href=&quot;http://sentry.readthedocs.org/en/latest/config/index.html&quot;&gt;config options&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h4 id=&quot;reverse-proxy&quot;&gt;Reverse Proxy&lt;/h4&gt;
+
+&lt;p&gt;I don&#39;t want to have to type in &lt;code&gt;http://174.129.196.120:9000/&lt;/code&gt; every time, so I set up a reverse proxy with Nginx on my Linode VPS.&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;nginx&quot;&gt;&lt;span class=&quot;k&quot;&gt;server&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;server_name&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;sentry.domain.com&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;access_log&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/you_pick/logs/access.log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kn&quot;&gt;error_log&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/you_pick/logs/error.log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    
+    &lt;span class=&quot;kn&quot;&gt;keepalive_timeout&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    
+    &lt;span class=&quot;kn&quot;&gt;location&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kn&quot;&gt;proxy_pass&lt;/span&gt;         &lt;span class=&quot;s&quot;&gt;http://ElasticIP:9000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kn&quot;&gt;proxy_redirect&lt;/span&gt;     &lt;span class=&quot;no&quot;&gt;off&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        
+        &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;   &lt;span class=&quot;s&quot;&gt;Host&lt;/span&gt;              &lt;span class=&quot;nv&quot;&gt;$host&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;   &lt;span class=&quot;s&quot;&gt;X-Real-IP&lt;/span&gt;         &lt;span class=&quot;nv&quot;&gt;$remote_addr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;   &lt;span class=&quot;s&quot;&gt;X-Forwarded-For&lt;/span&gt;   &lt;span class=&quot;nv&quot;&gt;$proxy_add_x_forwarded_for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kn&quot;&gt;proxy_set_header&lt;/span&gt;   &lt;span class=&quot;s&quot;&gt;X-Forwarded-Proto&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$scheme&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;its-a-service&quot;&gt;It&#39;s A Service&lt;/h4&gt;
+
+&lt;p&gt;You should probably manage Sentry processes some way. I decided to go with &lt;a href=&quot;http://supervisord.org/&quot;&gt;Supervisor&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;If you do too, install Supervisor:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo easy_install supervisor
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Create and edit the &lt;code&gt;.conf&lt;/code&gt; file:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;sudo vim /etc/supervisord.conf
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;and add&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;program:sentry-web&lt;span class=&quot;o&quot;&gt;]&lt;/span&gt;    
+&lt;span class=&quot;nb&quot;&gt;command&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;/usr/bin/sentry start http
+&lt;span class=&quot;nv&quot;&gt;autostart&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;autorestart&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;
+&lt;span class=&quot;nv&quot;&gt;redirect_stderr&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;  
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;to it. Then, run it with&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;nv&quot;&gt;$ &lt;/span&gt;supervisord -c /etc/supervisord.conf
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;plugins&quot;&gt;Plugins&lt;/h4&gt;
+
+&lt;p&gt;You can extend Sentry with plugins. There are plugins for&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Bitbucket&lt;/li&gt;
+  &lt;li&gt;Campfire&lt;/li&gt;
+  &lt;li&gt;Github&lt;/li&gt;
+  &lt;li&gt;Grove.io&lt;/li&gt;
+  &lt;li&gt;Hipchat&lt;/li&gt;
+  &lt;li&gt;Notifico&lt;/li&gt;
+  &lt;li&gt;Pushover&lt;/li&gt;
+  &lt;li&gt;Trello&lt;/li&gt;
+  &lt;li&gt;WhatsApp&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;A full list of plugins and download links can be found &lt;a href=&quot;http://sentry.readthedocs.org/en/latest/plugins/index.html&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+</description>
+				<pubDate>Wed, 13 Mar 2013 00:00:00 -0400</pubDate>
+				<link>http://mihirsingh.com/running-sentry-for-pennies</link>
+				<guid isPermaLink="true">http://mihirsingh.com/running-sentry-for-pennies</guid>
+			</item>
+		
+			<item>
+				<title>Apple, Stop Trolling Me</title>
+				<description>&lt;p&gt;Dear Apple,&lt;/p&gt;
+
+&lt;p&gt;Don&#39;t laugh when I call myself a fanboy and then say that I have an &lt;strong&gt;iPod Touch 3G&lt;/strong&gt; running &lt;strong&gt;iOS 5.1.1&lt;/strong&gt;. Yeah, it&#39;s terrible for my image as a fanboy, and yeah, it&#39;s terrible for developing on iOS.&lt;/p&gt;
+
+&lt;p&gt;But, my point is that you are trolling me. &lt;strong&gt;And, I don&#39;t like it.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;This is what is posted on the &lt;a href=&quot;http://apple.com/ios/whats-new&quot;&gt;iOS 6 page&lt;/a&gt; on your site:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://i.imgur.com/tbr3QMu.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;iOS 6 doesn&#39;t support my device. That&#39;s fine. I get it, you have to move on. &lt;/p&gt;
+
+&lt;p&gt;When my friends complain about this, I&#39;m the first to defend you. You&#39;re not going to handicap your mobile OS just to support legacy hardware&lt;sup id=&quot;fnref:1&quot;&gt;&lt;a href=&quot;#fn:1&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;. And, you shouldn&#39;t.&lt;/p&gt;
+
+&lt;p&gt;When I get an iPhone when my contract expires, I&#39;m going to love that you look forward.&lt;/p&gt;
+
+&lt;p&gt;But, I&#39;m not loving that you troll me. You give me false hope.&lt;/p&gt;
+
+&lt;p&gt;You see, you list apps which &lt;strong&gt;require iOS 6&lt;/strong&gt; as being &lt;strong&gt;compatible with the iPod Touch 3G&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://i.imgur.com/S8VUZRD.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;So, there are sad times when I open an app&#39;s page in the App Store on my iPod, touch the &lt;span class=&quot;label label-success&quot;&gt;BUY APP&lt;/span&gt; button, and am told to update my device.&lt;/p&gt;
+
+&lt;p&gt;For example, last night I set out on a search for an &lt;a href=&quot;http://app.net&quot;&gt;app.net&lt;/a&gt; client for my iPod Touch.&lt;/p&gt;
+
+&lt;p&gt;The two apps which I&#39;ve heard a lot about are &lt;a href=&quot;&quot;&gt;Felix&lt;/a&gt; and &lt;a href=&quot;&quot;&gt;Riposte&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;When I went to purchase each, I was confronted with:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://i.imgur.com/lPRjnhq.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://i.imgur.com/JULVLt5.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Oh Apple, why would you do this? &lt;/p&gt;
+
+&lt;p&gt;iOS 6 &lt;strong&gt;requires&lt;/strong&gt; iPod Touch 4+.  Felix for App.net &lt;strong&gt;requires&lt;/strong&gt; iOS 6. Ergo, Felix for App.net &lt;strong&gt;is not compatible&lt;/strong&gt; with iPod Touch 3G.&lt;/p&gt;
+
+&lt;p&gt;Yet, you list Felix for App.net as available for my iPod Touch 3G.&lt;/p&gt;
+
+&lt;p&gt;Even worse is that you&#39;re asking me to do something impossible - upgrade my iPod Touch to a firmware (iOS 6 for iPod Touch 3G) which does not exist. If it did, I would love it. But, it doesn&#39;t.&lt;/p&gt;
+
+&lt;p&gt;Every time that I set out to purchase an app that I&#39;ve heard about, and it tells me to update to iOS 6, it breaks my heart.&lt;/p&gt;
+
+&lt;p&gt;Please fix this. The same way that apps that require a camera aren&#39;t available on the App Store on an iPod Touch 3G, neither should apps requiring iOS 6.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Mihir&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;Update&lt;/strong&gt;:&lt;/p&gt;
+
+&lt;p&gt;On the &lt;a href=&quot;http://news.ycombinator.com/item?id=5143520&quot;&gt;HN thread&lt;/a&gt; eridius suggested that I file a bug report with Apple. And so, I have. Now for a response...&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;div class=&quot;footnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:1&quot;&gt;
+      &lt;p&gt;But, why support iOS 6 on the iPhone 3GS and not on the iPod Touch 3G? The iPod Touch came out after the iPhone - it&#39;s more recent. &lt;a href=&quot;#fnref:1&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+				<pubDate>Wed, 30 Jan 2013 00:00:00 -0500</pubDate>
+				<link>http://mihirsingh.com/apple-stop-trolling-me</link>
+				<guid isPermaLink="true">http://mihirsingh.com/apple-stop-trolling-me</guid>
+			</item>
+		
+			<item>
+				<title>Keeping Secrets Secret</title>
+				<description>&lt;p&gt;Over the past week or so, a few posts on Hacker News have popped up which demonstrate how easy it is to to find files with sensitive information like:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;wp-config.php&lt;/li&gt;
+  &lt;li&gt;secret_token.rb&lt;/li&gt;
+  &lt;li&gt;id_rsa&lt;/li&gt;
+  &lt;li&gt;id_rsa.pub&lt;/li&gt;
+  &lt;li&gt;etc.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;If you make use of Google dorks and run a search for&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;site:github.com master/wp_config.php password blob DB_PASSWORD&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;you&#39;ll get back 2,000+ results. That&#39;s a problem.&lt;/p&gt;
+
+&lt;p&gt;A search for &lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;site:github.com master/id_rsa&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;yields some 14,000+ results. Uh oh.&lt;/p&gt;
+
+&lt;p&gt;Even if &lt;em&gt;only&lt;/em&gt; half of those results are valid (&lt;a href=&quot;https://github.com/Cerberus98/ssh_keys/blob/master/id_rsa&quot;&gt;well played, sir&lt;/a&gt;), that&#39;s still a  lot of sensitive information floating around.&lt;/p&gt;
+
+&lt;p&gt;In response, Github has written a post, &lt;a href=&quot;https://github.com/blog/1390-secrets-in-the-code&quot;&gt;Secrets in the code&lt;/a&gt;, where they say that&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Once a secret is out, it&#39;s out. There are no partially compromised secrets. If you&#39;ve pushed sensitive information to a public repository, there&#39;s a good chance that it&#39;s been indexed by Google and can be searched. And with GitHub&#39;s new Search feature, it&#39;s now more easily searchable on our site.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;They&#39;re right - once the cat&#39;s out the bag, its out. Of course, Github has a great article on &lt;a href=&quot;https://help.github.com/articles/remove-sensitive-data&quot;&gt;removing sensitive data from a repository&#39;s history&lt;/a&gt;. &lt;/p&gt;
+
+&lt;p&gt;Unfortunately, the fact is that at some point, the page has been (most likely) cached and visited. &lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;You should consider the sensitive information compromised for all intents and purposes.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;There&#39;s a few ways to prevent sensitive information from becoming public.&lt;/p&gt;
+
+&lt;h3 id=&quot;environment-variables&quot;&gt;Environment Variables&lt;/h3&gt;
+
+&lt;p&gt;Some of the &lt;code&gt;wp-config.php&lt;/code&gt; files look like this:&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;php&quot;&gt;&lt;span class=&quot;c1&quot;&gt;// ** MySQL settings - You can get this info from your web host ** //&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;/** The name of the database for WordPress */&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;define&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_NAME&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$_ENV&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_NAME&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;/** MySQL database username */&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;define&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_USER&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$_ENV&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_USER&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;/** MySQL database password */&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;define&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_PASSWORD&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$_ENV&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_PASSWORD&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;/** MySQL hostname */&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;define&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_HOST&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nv&quot;&gt;$_ENV&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_HOST&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;/** Database Charset to use in creating database tables. */&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;define&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_CHARSET&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;utf8&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;sd&quot;&gt;/** The Database Collate type. Don&amp;#39;t change this if in doubt. */&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;define&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;&amp;#39;DB_COLLATE&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s1&quot;&gt;&amp;#39;&amp;#39;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This solution makes use of PHP&#39;s &lt;a href=&quot;http://php.net/manual/en/reserved.variables.environment.php&quot;&gt;$_ENV&lt;/a&gt; variables. The sensitive information isn&#39;t actually in the code, so if the &lt;code&gt;wp-config.php&lt;/code&gt; file gets committed accidentally, no biggie.&lt;/p&gt;
+
+&lt;p&gt;Other languages also make use of environment variables - Python has &lt;code&gt;os.environ&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;The best part about environment variables is that they are language- and operating system-agnostic.&lt;/p&gt;
+
+&lt;p&gt;A great article on using environment variables is The Twelve-Factor App&#39;s &lt;a href=&quot;http://www.12factor.net/config&quot;&gt;III. Config&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h3 id=&quot;gitignore&quot;&gt;.gitignore&lt;/h3&gt;
+
+&lt;p&gt;But, the best solution? The simplest solution? A simple &lt;code&gt;.gitignore&lt;/code&gt; file.&lt;/p&gt;
+
+&lt;p&gt;Simply place a file named &lt;code&gt;.gitignore&lt;/code&gt; in the root of your git directory. Any &lt;em&gt;folders&lt;/em&gt; or &lt;em&gt;files&lt;/em&gt; that you list will be ignored when you commit.&lt;/p&gt;
+
+&lt;p&gt;So, if your &lt;code&gt;.gitignore&lt;/code&gt; file looks like&lt;/p&gt;
+
+&lt;div class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;bash&quot;&gt;&lt;span class=&quot;c&quot;&gt;# .gitignore for wordpress&lt;/span&gt;
+    
+wp-config.php
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;then git will ignore &lt;code&gt;wp-config.php&lt;/code&gt;, leaving you free to &lt;code&gt;git add .&lt;/code&gt; blindly.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://cdn.memegenerator.net/instances/400x/33945125.jpg&quot; alt=&quot;.gitignore, you fools&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Of course, all of this only matters if its a public repository, but it doesn&#39;t hurt to apply good security practices to private repositories as well.&lt;/p&gt;
+</description>
+				<pubDate>Sun, 27 Jan 2013 00:00:00 -0500</pubDate>
+				<link>http://mihirsingh.com/keeping-secrets-secret</link>
+				<guid isPermaLink="true">http://mihirsingh.com/keeping-secrets-secret</guid>
+			</item>
+		
+	</channel>
+</rss>
